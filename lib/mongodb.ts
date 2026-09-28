@@ -1,10 +1,11 @@
 import mongoose from "mongoose";
 
 const MONGODB_URI = (process.env.MONGODB_URI ?? "").trim();
+const isProduction = process.env.NODE_ENV === "production";
 
-if (!MONGODB_URI) {
+if (!MONGODB_URI && !isProduction) {
   console.warn(
-    "MONGODB_URI is not defined. Falling back to localhost MongoDB."
+    "MONGODB_URI is not defined. Falling back to localhost MongoDB in development."
   );
 }
 
@@ -24,7 +25,17 @@ const cached =
   };
 
 export async function connectMongo() {
-  const mongoUri = (MONGODB_URI || "mongodb://127.0.0.1:27017/todoapp").replace(/\s+/g, "");
+  const mongoUri = MONGODB_URI
+    ? MONGODB_URI.replace(/\s+/g, "")
+    : isProduction
+      ? ""
+      : "mongodb://127.0.0.1:27017/todoapp";
+
+  if (!mongoUri) {
+    throw new Error(
+      "MONGODB_URI is missing. Add it in Vercel / GitHub environment variables before deploying."
+    );
+  }
 
   if (cached.conn) {
     return cached.conn;
