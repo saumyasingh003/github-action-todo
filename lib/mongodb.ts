@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = (process.env.MONGODB_URI ?? "").trim();
 
 if (!MONGODB_URI) {
   console.warn(
-    "MONGODB_URI is not defined. Add it to .env.local before running the app."
+    "MONGODB_URI is not defined. Falling back to localhost MongoDB."
   );
 }
 
@@ -24,16 +24,14 @@ const cached =
   };
 
 export async function connectMongo() {
-  if (!MONGODB_URI) {
-    throw new Error("Please define MONGODB_URI in .env.local");
-  }
+  const mongoUri = (MONGODB_URI || "mongodb://127.0.0.1:27017/todoapp").replace(/\s+/g, "");
 
   if (cached.conn) {
     return cached.conn;
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
+    cached.promise = mongoose.connect(mongoUri, {
       dbName: "todoapp",
     });
   }
