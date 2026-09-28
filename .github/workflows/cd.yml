@@ -66,6 +66,12 @@ jobs:
             mkdir -p ~/mern
             cd ~/mern
 
+            cat > .env <<EOF
+            NODE_ENV=production
+            PORT=3000
+            MONGODB_URI=${{ secrets.MONGODB_URI }}
+            EOF
+
             cat > docker-compose.yml <<EOF
             services:
               app:
@@ -74,9 +80,8 @@ jobs:
                 restart: unless-stopped
                 ports:
                   - "3000:3000"
-                environment:
-                  NODE_ENV: production
-                  MONGODB_URI: mongodb://mongo:27017/todoapp
+                env_file:
+                  - .env
                 depends_on:
                   - mongo
 
