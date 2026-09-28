@@ -34,7 +34,11 @@ export default function TodoApp() {
   };
 
   useEffect(() => {
-    void fetchTodos();
+    const loadTodos = async () => {
+      await fetchTodos();
+    };
+
+    void loadTodos();
   }, []);
 
   const handleAddTodo = async (event: FormEvent<HTMLFormElement>) => {
