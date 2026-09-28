@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const MONGODB_URI = (process.env.MONGODB_URI ?? "").trim();
 const isProduction = process.env.NODE_ENV === "production";
+const LOCAL_MONGODB_URI = "mongodb://127.0.0.1:27017/todoapp";
 
 if (!MONGODB_URI && !isProduction) {
   console.warn(
@@ -24,12 +25,29 @@ const cached =
     promise: null,
   };
 
+async function connectWithRetry(uri: string) {
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(uri, {
+      dbName: "todoapp",
+    });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  } catch (error) {
+    cached.promise = null;
+    throw error;
+  }
+}
+
 export async function connectMongo() {
-  const mongoUri = MONGODB_URI
-    ? MONGODB_URI.replace(/\s+/g, "")
-    : isProduction
-      ? ""
-      : "mongodb://127.0.0.1:27017/todoapp";
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  const configuredUri = MONGODB_URI ? MONGODB_URI.replace(/\s+/g, "") : "";
+  const mongoUri = configuredUri || (isProduction ? "" : LOCAL_MONGODB_URI);
 
   if (!mongoUri) {
     throw new Error(
@@ -37,22 +55,20 @@ export async function connectMongo() {
     );
   }
 
-  if (cached.conn) {
-    return cached.conn;
-  }
-
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(mongoUri, {
-      dbName: "todoapp",
-    });
-  }
-
   try {
-    cached.conn = await cached.promise;
+    return await connectWithRetry(mongoUri);
   } catch (error) {
-    cached.promise = null;
-    throw error;
-  }
+    const shouldFallbackToLocal = !isProduction && configuredUri && mongoUri !== LOCAL_MONGODB_URI;
 
-  return cached.conn;
+    if (!shouldFallbackToLocal) {
+      throw error;
+    }
+
+    console.warn(
+      "MongoDB Atlas connection failed. Falling back to localhost MongoDB in development.",
+      error
+    );
+
+    return await connectWithRetry(LOCAL_MONGODB_URI);
+  }
 }
