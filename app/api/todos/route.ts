@@ -20,8 +20,26 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const title = typeof body.title === "string" ? body.title.trim() : "";
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "Request body must be valid JSON" },
+        { status: 400 }
+      );
+    }
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json(
+        { success: false, message: "Request body must be a JSON object" },
+        { status: 400 }
+      );
+    }
+
+    const payload = body as Record<string, unknown>;
+    const title = typeof payload.title === "string" ? payload.title.trim() : "";
 
     if (!title) {
       return NextResponse.json(
@@ -30,8 +48,18 @@ export async function POST(request: Request) {
       );
     }
 
+    if (payload.completed !== undefined && typeof payload.completed !== "boolean") {
+      return NextResponse.json(
+        { success: false, message: "Todo completed must be a boolean" },
+        { status: 400 }
+      );
+    }
+
     await connectMongo();
-    const todo = await Todo.create({ title, completed: Boolean(body.completed) });
+    const todo = await Todo.create({
+      title,
+      completed: payload.completed ?? false,
+    });
 
     return NextResponse.json({ success: true, todo }, { status: 201 });
   } catch (error) {

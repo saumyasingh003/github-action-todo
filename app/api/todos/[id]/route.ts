@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 import { connectMongo } from "@/lib/mongodb";
 import Todo from "@/models/Todo";
@@ -9,6 +10,14 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid todo ID" },
+        { status: 400 }
+      );
+    }
+
     await connectMongo();
     const todo = await Todo.findById(id);
 
@@ -35,15 +44,55 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
-    const payload: Record<string, unknown> = {};
 
-    if (typeof body.title === "string") {
-      payload.title = body.title.trim();
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid todo ID" },
+        { status: 400 }
+      );
     }
 
-    if (typeof body.completed === "boolean") {
-      payload.completed = body.completed;
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: "Request body must be valid JSON" },
+        { status: 400 }
+      );
+    }
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json(
+        { success: false, message: "Request body must be a JSON object" },
+        { status: 400 }
+      );
+    }
+
+    const requestBody = body as Record<string, unknown>;
+    const payload: Record<string, unknown> = {};
+
+    if (requestBody.title !== undefined) {
+      if (typeof requestBody.title !== "string" || !requestBody.title.trim()) {
+        return NextResponse.json(
+          { success: false, message: "Todo title must be a non-empty string" },
+          { status: 400 }
+        );
+      }
+
+      payload.title = requestBody.title.trim();
+    }
+
+    if (requestBody.completed !== undefined) {
+      if (typeof requestBody.completed !== "boolean") {
+        return NextResponse.json(
+          { success: false, message: "Todo completed must be a boolean" },
+          { status: 400 }
+        );
+      }
+
+      payload.completed = requestBody.completed;
     }
 
     if (Object.keys(payload).length === 0) {
@@ -54,7 +103,10 @@ export async function PUT(
     }
 
     await connectMongo();
-    const todo = await Todo.findByIdAndUpdate(id, payload, { new: true });
+    const todo = await Todo.findByIdAndUpdate(id, payload, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!todo) {
       return NextResponse.json(
@@ -79,6 +131,14 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+
+    if (!mongoose.isObjectIdOrHexString(id)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid todo ID" },
+        { status: 400 }
+      );
+    }
+
     await connectMongo();
     const todo = await Todo.findByIdAndDelete(id);
 

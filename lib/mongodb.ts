@@ -46,8 +46,7 @@ export async function connectMongo() {
     return cached.conn;
   }
 
-  const configuredUri = MONGODB_URI ? MONGODB_URI.replace(/\s+/g, "") : "";
-  const mongoUri = configuredUri || (isProduction ? "" : LOCAL_MONGODB_URI);
+  const mongoUri = MONGODB_URI || (isProduction ? "" : LOCAL_MONGODB_URI);
 
   if (!mongoUri) {
     throw new Error(
@@ -55,20 +54,5 @@ export async function connectMongo() {
     );
   }
 
-  try {
-    return await connectWithRetry(mongoUri);
-  } catch (error) {
-    const shouldFallbackToLocal = !isProduction && configuredUri && mongoUri !== LOCAL_MONGODB_URI;
-
-    if (!shouldFallbackToLocal) {
-      throw error;
-    }
-
-    console.warn(
-      "MongoDB Atlas connection failed. Falling back to localhost MongoDB in development.",
-      error
-    );
-
-    return await connectWithRetry(LOCAL_MONGODB_URI);
-  }
+  return await connectWithRetry(mongoUri);
 }
