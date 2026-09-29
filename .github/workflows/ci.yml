@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main, master]
+
   pull_request:
     branches: [main, master]
 
@@ -15,6 +16,11 @@ jobs:
         image: mongo:7
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       MONGODB_URI: mongodb://127.0.0.1:27017/todoapp
@@ -32,12 +38,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint app
+      - name: Run Lint
         run: npm run lint
 
-      - name: Build app
+      - name: Build Application
         run: npm run build
-
-
-
-
