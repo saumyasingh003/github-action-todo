@@ -29,6 +29,8 @@ async function connectWithRetry(uri: string) {
   if (!cached.promise) {
     cached.promise = mongoose.connect(uri, {
       dbName: "todoapp",
+      connectTimeoutMS: 8000,
+      serverSelectionTimeoutMS: 8000,
     });
   }
 
