@@ -15,6 +15,15 @@ type MongooseCache = {
   promise: Promise<typeof mongoose> | null;
 };
 
+export class MongoConfigurationError extends Error {
+  constructor() {
+    super(
+      "MONGODB_URI is missing. Add it in Vercel / GitHub environment variables before deploying."
+    );
+    this.name = "MongoConfigurationError";
+  }
+}
+
 const globalWithMongoose = globalThis as typeof globalThis & {
   mongoose?: MongooseCache;
 };
@@ -51,10 +60,24 @@ export async function connectMongo() {
   const mongoUri = MONGODB_URI || (isProduction ? "" : LOCAL_MONGODB_URI);
 
   if (!mongoUri) {
-    throw new Error(
-      "MONGODB_URI is missing. Add it in Vercel / GitHub environment variables before deploying."
-    );
+    throw new MongoConfigurationError();
   }
 
-  return await connectWithRetry(mongoUri);
+  try {
+    return await connectWithRetry(mongoUri);
+  } catch (error) {
+    const shouldFallbackToLocal =
+      !isProduction && MONGODB_URI && mongoUri !== LOCAL_MONGODB_URI;
+
+    if (!shouldFallbackToLocal) {
+      throw error;
+    }
+
+    console.warn(
+      "Configured MongoDB connection failed. Falling back to localhost MongoDB in development.",
+      error
+    );
+
+    return await connectWithRetry(LOCAL_MONGODB_URI);
+  }
 }

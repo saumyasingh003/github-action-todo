@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { apiErrorResponse } from "@/lib/api-error";
 import { connectMongo } from "@/lib/mongodb";
 import Todo from "@/models/Todo";
 
@@ -10,11 +11,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, todos });
   } catch (error) {
-    console.error("GET /api/todos failed:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to fetch todos" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "GET /api/todos", "Failed to fetch todos");
   }
 }
 
@@ -63,10 +60,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, todo }, { status: 201 });
   } catch (error) {
-    console.error("POST /api/todos failed:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to create todo" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "POST /api/todos", "Failed to create todo");
   }
 }

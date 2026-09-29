@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 
+import { apiErrorResponse } from "@/lib/api-error";
 import { connectMongo } from "@/lib/mongodb";
 import Todo from "@/models/Todo";
 
@@ -30,11 +31,7 @@ export async function GET(
 
     return NextResponse.json({ success: true, todo });
   } catch (error) {
-    console.error("GET /api/todos/[id] failed:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to fetch todo" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "GET /api/todos/[id]", "Failed to fetch todo");
   }
 }
 
@@ -117,11 +114,7 @@ export async function PUT(
 
     return NextResponse.json({ success: true, todo });
   } catch (error) {
-    console.error("PUT /api/todos/[id] failed:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to update todo" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "PUT /api/todos/[id]", "Failed to update todo");
   }
 }
 
@@ -151,10 +144,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, deletedTodo: todo });
   } catch (error) {
-    console.error("DELETE /api/todos/[id] failed:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to delete todo" },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, "DELETE /api/todos/[id]", "Failed to delete todo");
   }
 }
